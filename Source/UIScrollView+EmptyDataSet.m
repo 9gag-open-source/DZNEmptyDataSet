@@ -19,6 +19,7 @@
 @property (nonatomic, readonly) UIImageView *imageView;
 @property (nonatomic, readonly) UIButton *button;
 @property (nonatomic, strong) UIView *customView;
+@property (nonatomic, strong) UIView *customLoadingView;
 @property (nonatomic, strong) UITapGestureRecognizer *tapGesture;
 
 @property (nonatomic, assign) CGPoint offset;
@@ -36,11 +37,38 @@ static char const * const kEmptyDataSetView =       "emptyDataSetView";
 
 static NSString * const kEmptyDataSetDealloc =      @"dealloc";
 
+static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyDataSetViewDidLayoutSublayer";
+
 @interface UIScrollView () <UIGestureRecognizerDelegate>
 @property (nonatomic, readonly) DZNEmptyDataSetView *emptyDataSetView;
 @end
 
 @implementation UIScrollView (DZNEmptyDataSet)
+
++ (void)load {
+    
+    Class c = [UITableView class];
+    SEL orig = @selector(layoutSublayersOfLayer:);
+    SEL new = @selector(swizzled_layoutSublayersOfLayer:);
+    Method origMethod = class_getInstanceMethod(c, orig);
+    Method newMethod = class_getInstanceMethod(c, new);
+    if(class_addMethod(c, orig, method_getImplementation(newMethod), method_getTypeEncoding(newMethod))) {
+        class_replaceMethod(c, new, method_getImplementation(origMethod), method_getTypeEncoding(origMethod));
+    }
+    else {
+        method_exchangeImplementations(origMethod, newMethod);
+    }
+}
+
+- (void)swizzled_layoutSublayersOfLayer:(CALayer *)layer {
+    [self swizzled_layoutSublayersOfLayer:layer];
+    if([self dzn_didLayoutSublayer]){
+        
+    } else {
+        [self setDidLayoutSublayer:YES];
+        [self reloadEmptyDataSet];
+    }
+}
 
 #pragma mark - Getters (Public)
 
@@ -78,6 +106,8 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
         [view addGestureRecognizer:view.tapGesture];
 
         [self setEmptyDataSetView:view];
+        
+        DEBUG_BORDER_WIDTH(view, 2.0);
     }
     return view;
 }
@@ -138,6 +168,11 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
     return items;
 }
 
+- (BOOL)dzn_didLayoutSublayer
+{
+    NSNumber *number = objc_getAssociatedObject(self, kEmptyDataSetViewDidLayoutSublayer);
+    return number ? [number boolValue] : NO;
+}
 
 #pragma mark - Data Source Getters
 
@@ -229,6 +264,18 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
         return view;
     }
     return nil;
+}
+
+- (UIView *)dzn_customLoadingView
+{
+    if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(customLoadingViewForEmptyDataSet:)]) {
+        UIView *view = [self.emptyDataSetSource customLoadingViewForEmptyDataSet:self];
+        if (view) NSAssert([view isKindOfClass:[UIView class]], @"You must return a valid UIView object for -customLoadingViewForEmptyDataSet:");
+        return view;
+    }
+    UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+    [activityIndicatorView startAnimating];
+    return activityIndicatorView;
 }
 
 - (CGPoint)dzn_offset
@@ -326,6 +373,13 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
     }
 }
 
+- (BOOL)dzn_shouldDisplayLoading
+{
+    if (self.emptyDataSetDelegate && [self.emptyDataSetDelegate respondsToSelector:@selector(emptyDataSetShouldDisplayLoading:)]) {
+        return [self.emptyDataSetDelegate emptyDataSetShouldDisplayLoading:self];
+    }
+    return NO;
+}
 
 #pragma mark - Setters (Public)
 
@@ -373,6 +427,10 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
     objc_setAssociatedObject(self, kEmptyDataSetView, view, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
+- (void)setDidLayoutSublayer:(BOOL)didLayoutSublayer
+{
+    objc_setAssociatedObject(self, kEmptyDataSetViewDidLayoutSublayer, @(didLayoutSublayer), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 
 #pragma mark - Reload APIs (Public)
 
@@ -380,7 +438,6 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
 {
     [self dzn_reloadEmptyDataSet];
 }
-
 
 #pragma mark - Reload APIs (Private)
 
@@ -390,13 +447,16 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
         return;
     }
     
+    if(![self dzn_didLayoutSublayer]){
+        return;
+    }
+    
     if ([self dzn_shouldDisplay] && [self dzn_itemsCount] == 0)
     {
         // Notifies that the empty dataset view will appear
         [self dzn_willAppear];
         
         DZNEmptyDataSetView *view = self.emptyDataSetView;
-        UIView *customView = [self dzn_customView];
         
         if (!view.superview) {
 
@@ -412,9 +472,14 @@ static NSString * const kEmptyDataSetDealloc =      @"dealloc";
         // Moves all its subviews
         [view removeAllSubviews];
         
+        
+        if([self dzn_shouldDisplayLoading] && [self dzn_customLoadingView]){ //and is loading
+            view.customLoadingView = [self dzn_customLoadingView];
+        }
+        
         // If a non-nil custom view is available, let's configure it instead
-        if (customView) {
-            view.customView = customView;
+        else if ([self dzn_customView]) {
+            view.customView = [self dzn_customView];
         }
         else {
             // Configure labels
@@ -797,6 +862,22 @@ NSString *dzn_implementationKey(id target, SEL selector)
     [self.contentView addSubview:_customView];
 }
 
+- (void)setCustomLoadingView:(UIView *)view
+{
+    if (!view) {
+        return;
+    }
+    
+    if (_customLoadingView) {
+        [_customLoadingView removeFromSuperview];
+        _customLoadingView = nil;
+    }
+    
+    _customLoadingView = view;
+    _customLoadingView.translatesAutoresizingMaskIntoConstraints = !CGRectIsEmpty(view.frame);
+    [self.contentView addSubview:_customLoadingView];
+}
+
 
 #pragma mark - Action Methods
 
@@ -818,6 +899,7 @@ NSString *dzn_implementationKey(id target, SEL selector)
     _imageView = nil;
     _button = nil;
     _customView = nil;
+    _customLoadingView = nil;
 }
 
 - (void)removeAllConstraints
@@ -858,6 +940,15 @@ NSString *dzn_implementationKey(id target, SEL selector)
         // the values must be inverted to follow the up-bottom and left-right directions
         vConstraint.constant = self.offset.y*-1;
         hConstraint.constant = self.offset.x*-1;
+    }
+
+    if (_customLoadingView) {
+        [views setObject:_customLoadingView forKey:@"customLoadingView"];
+        [self.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|[customLoadingView]|" options:0 metrics:nil views:views]];
+        [self.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:|[customLoadingView]|" options:0 metrics:nil views:views]];
+        
+        // Skips from any further configuration
+        return [super updateConstraints];;
     }
     
     if (_customView) {

@@ -140,6 +140,8 @@
  */
 - (CGFloat)spaceHeightForEmptyDataSet:(UIScrollView *)scrollView;
 
+- (UIView *)customLoadingViewForEmptyDataSet:(UIView *)scrollView;
+
 @end
 
 
@@ -218,5 +220,7 @@
  @param scrollView A scrollView subclass informing the delegate.
  */
 - (void)emptyDataSetDidDisappear:(UIScrollView *)scrollView;
+
+- (BOOL)emptyDataSetShouldDisplayLoading:(UIScrollView *)scrollView;
 
 @end
