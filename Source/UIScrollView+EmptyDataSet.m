@@ -35,8 +35,6 @@ static char const * const kEmptyDataSetSource =     "emptyDataSetSource";
 static char const * const kEmptyDataSetDelegate =   "emptyDataSetDelegate";
 static char const * const kEmptyDataSetView =       "emptyDataSetView";
 
-static NSString * const kEmptyDataSetDealloc =      @"dealloc";
-
 static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyDataSetViewDidLayoutSublayer";
 
 @interface UIScrollView () <UIGestureRecognizerDelegate>
@@ -107,7 +105,6 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
 
         [self setEmptyDataSetView:view];
         
-        DEBUG_BORDER_WIDTH(view, 2.0);
     }
     return view;
 }
@@ -385,16 +382,6 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
 
 - (void)setEmptyDataSetSource:(id<DZNEmptyDataSetSource>)source
 {
-    // Registers for device orientation changes
-    if (source && !self.emptyDataSetSource) {
-        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(dzn_deviceDidChangeOrientation:) name:UIDeviceOrientationDidChangeNotification object:nil];
-        [self swizzle:NSSelectorFromString(kEmptyDataSetDealloc)];
-    }
-    // Skip if the datasource is already set up
-    else {
-        return;
-    }
-    
     objc_setAssociatedObject(self, kEmptyDataSetSource, source, OBJC_ASSOCIATION_ASSIGN);
     
     if (![self dzn_canDisplay]) {
@@ -555,16 +542,6 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
     [self dzn_didDisappear];
 }
 
-
-#pragma mark - Lifeterm Methods (Private)
-
-- (void)dzn_dealloc
-{
-    // Remove observers
-    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIDeviceOrientationDidChangeNotification object:nil];
-}
-
-
 #pragma mark - Notification Events
 
 - (void)dzn_deviceDidChangeOrientation:(NSNotification *)notification
@@ -596,19 +573,13 @@ void dzn_original_implementation(id self, SEL _cmd)
     
     IMP impPointer = [impValue pointerValue];
     
-    // Prevent doing any logic over self during dealloc process
-    if ([key rangeOfString:kEmptyDataSetDealloc].location != NSNotFound) {
-        [self dzn_dealloc];
-    }
-    else {
-        // We then inject the additional implementation for reloading the empty dataset
-        // Doing it before calling the original implementation does update the 'isEmptyDataSetVisible' flag on time.
-        [self dzn_reloadEmptyDataSet];
-        
-        // If found, call original implementation
-        if (impPointer) {
-            ((void(*)(id,SEL))impPointer)(self,_cmd);
-        }
+    // We then inject the additional implementation for reloading the empty dataset
+    // Doing it before calling the original implementation does update the 'isEmptyDataSetVisible' flag on time.
+    [self dzn_reloadEmptyDataSet];
+    
+    // If found, call original implementation
+    if (impPointer) {
+        ((void(*)(id,SEL))impPointer)(self,_cmd);
     }
 }
 
