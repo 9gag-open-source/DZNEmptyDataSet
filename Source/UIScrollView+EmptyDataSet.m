@@ -223,6 +223,15 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
     return nil;
 }
 
+- (UIColor *)dzn_buttonBackgroundColor {
+    if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(buttonBackgroundColorForEmptyDataSet:)]) {
+        UIColor *color = [self.emptyDataSetSource buttonBackgroundColorForEmptyDataSet:self];
+        if (color) NSAssert([color isKindOfClass:[UIColor class]], @"You must return a valid UIColor object -buttonBackgroundColorForEmptyDataSet:");
+        return color;
+    }
+    return nil;
+}
+
 - (UIImage *)dzn_buttonImageForState:(UIControlState)state
 {
     if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(buttonImageForEmptyDataSet:forState:)]) {
@@ -494,6 +503,7 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
                 [view.button setAttributedTitle:[self dzn_buttonTitleForState:UIControlStateHighlighted] forState:UIControlStateHighlighted];
                 [view.button setBackgroundImage:[self dzn_buttonBackgroundImageForState:UIControlStateNormal] forState:UIControlStateNormal];
                 [view.button setBackgroundImage:[self dzn_buttonBackgroundImageForState:UIControlStateHighlighted] forState:UIControlStateHighlighted];
+                [view.button setBackgroundColor:[self dzn_buttonBackgroundColor]];
             }
 
             // Configure spacing
@@ -787,7 +797,11 @@ NSString *dzn_implementationKey(id target, SEL selector)
         _button.contentHorizontalAlignment = UIControlContentHorizontalAlignmentCenter;
         _button.contentVerticalAlignment = UIControlContentVerticalAlignmentCenter;
         _button.accessibilityLabel = @"empty set button";
-
+        _button.layer.cornerRadius = 5.0;
+        _button.layer.shouldRasterize = YES;
+        _button.layer.rasterizationScale = [[UIScreen mainScreen] scale];
+        [_button setContentEdgeInsets:UIEdgeInsetsMake(0,20,0,20)];
+        
         [_button addTarget:self action:@selector(didTapButton:) forControlEvents:UIControlEventTouchUpInside];
         
         [_contentView addSubview:_button];
@@ -984,8 +998,16 @@ NSString *dzn_implementationKey(id target, SEL selector)
         [views setObject:_button forKey:@"button"];
         [verticalSubviews addObject:@"[button]"];
         
-        [self.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-padding-[button]-padding-|"
-                                                                                 options:0 metrics:metrics views:views]];
+        [self.contentView addConstraint:[NSLayoutConstraint constraintWithItem:_button
+                                                                     attribute:NSLayoutAttributeCenterX
+                                                                     relatedBy:NSLayoutRelationEqual
+                                                                        toItem:_button.superview
+                                                                     attribute:NSLayoutAttributeCenterX
+                                                                    multiplier:1.0
+                                                                      constant:0.0]];
+        
+//        [self.contentView addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:|-padding-[button]-padding-|"
+//                                                                                 options:0 metrics:metrics views:views]];
     }
     // or removes from its superview
     else {

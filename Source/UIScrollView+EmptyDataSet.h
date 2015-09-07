@@ -86,6 +86,9 @@
  */
 - (NSAttributedString *)buttonTitleForEmptyDataSet:(UIScrollView *)scrollView forState:(UIControlState)state;
 
+
+- (UIColor *)buttonBackgroundColorForEmptyDataSet:(UIScrollView *)scrollView;
+
 /**
  Asks the data source for the image to be used for the specified button state.
  This method will override buttonTitleForEmptyDataSet:forState: and present the image only without any text.
