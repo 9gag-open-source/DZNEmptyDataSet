@@ -538,18 +538,27 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
 {
     // Notifies that the empty dataset view will disappear
     [self dzn_willDisappear];
-
+    
+    UIScrollView __weak *wSelf = self;
+    void (^completion)(BOOL finished) = ^(BOOL finished){
+        wSelf.scrollEnabled = YES;
+        // Notifies that the empty dataset view did disappear
+        [wSelf dzn_didDisappear];
+    };
+    
     if (self.emptyDataSetView) {
-        [self.emptyDataSetView removeAllSubviews];
-        [self.emptyDataSetView removeFromSuperview];
-        
-        [self setEmptyDataSetView:nil];
+        [UIView animateWithDuration:0.25 animations:^{
+            self.emptyDataSetView.contentView.alpha = 0.0;
+        } completion:^(BOOL finished) {
+            [self.emptyDataSetView removeAllSubviews];
+            [self.emptyDataSetView removeFromSuperview];
+            [self setEmptyDataSetView:nil];
+            completion(finished);
+        }];
+    } else {
+        completion(YES);
     }
     
-    self.scrollEnabled = YES;
-
-    // Notifies that the empty dataset view did disappear
-    [self dzn_didDisappear];
 }
 
 #pragma mark - Notification Events
