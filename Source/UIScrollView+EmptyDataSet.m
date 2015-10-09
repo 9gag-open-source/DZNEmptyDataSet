@@ -708,7 +708,7 @@ NSString *dzn_implementationKey(id target, SEL selector)
 
 - (void)didMoveToSuperview
 {
-    self.frame = self.superview.bounds;
+    self.frame = CGRectMake(0,0,self.superview.bounds.size.width,self.superview.bounds.size.height);
     
     [UIView animateWithDuration:0.25
                      animations:^{_contentView.alpha = 1.0;}
