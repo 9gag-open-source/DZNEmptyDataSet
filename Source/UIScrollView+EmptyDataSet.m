@@ -167,6 +167,9 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
 
 - (BOOL)dzn_didLayoutSublayer
 {
+    if([self isKindOfClass:[UICollectionView class]]){
+        return YES;
+    }
     NSNumber *number = objc_getAssociatedObject(self, kEmptyDataSetViewDidLayoutSublayer);
     return number ? [number boolValue] : NO;
 }
