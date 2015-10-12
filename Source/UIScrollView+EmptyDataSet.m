@@ -291,6 +291,19 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
     CGFloat bottom = roundf(self.contentInset.bottom / 2.0);
     CGFloat right = roundf(self.contentInset.right / 2.0);
     
+    if ([self isKindOfClass:[UITableView class]]) {
+        UITableView *tableView = (UITableView *)self;
+        top += tableView.tableHeaderView.frame.size.height;
+        
+        if(tableView.style == UITableViewStyleGrouped && [tableView numberOfSections] > 0){
+            if(tableView.delegate && [tableView.delegate respondsToSelector:@selector(tableView:heightForHeaderInSection:)]){
+                top += [tableView.delegate tableView:tableView heightForHeaderInSection:0];
+            } else {
+                top += [tableView sectionHeaderHeight];
+            }
+        }
+    }
+    
     // Honors the scrollView's contentInset
     CGPoint offset = CGPointMake(left-right, top-bottom);
     
