@@ -825,7 +825,7 @@ NSString *dzn_implementationKey(id target, SEL selector)
         _button.layer.cornerRadius = 5.0;
         _button.layer.shouldRasterize = YES;
         _button.layer.rasterizationScale = [[UIScreen mainScreen] scale];
-        [_button setContentEdgeInsets:UIEdgeInsetsMake(0,20,0,20)];
+        [_button setContentEdgeInsets:UIEdgeInsetsMake(12,20,12,20)];
         
         [_button addTarget:self action:@selector(didTapButton:) forControlEvents:UIControlEventTouchUpInside];
         
