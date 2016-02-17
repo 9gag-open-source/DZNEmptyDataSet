@@ -289,10 +289,10 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
 
 - (CGPoint)dzn_offset
 {
-    CGFloat top = roundf(self.contentInset.top / 2.0);
-    CGFloat left = roundf(self.contentInset.left / 2.0);
-    CGFloat bottom = roundf(self.contentInset.bottom / 2.0);
-    CGFloat right = roundf(self.contentInset.right / 2.0);
+    CGFloat top = roundf(self.contentInset.top);
+    CGFloat left = roundf(self.contentInset.left);
+    CGFloat bottom = roundf(self.contentInset.bottom);
+    CGFloat right = roundf(self.contentInset.right);
     
     if ([self isKindOfClass:[UITableView class]]) {
         UITableView *tableView = (UITableView *)self;
@@ -308,7 +308,7 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
     }
     
     // Honors the scrollView's contentInset
-    CGPoint offset = CGPointMake(left-right, top-bottom);
+    CGPoint offset = CGPointMake((left-right), (-top+(top-bottom)*0.5));
     
     if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(offsetForEmptyDataSet:)]) {
         CGPoint customOffset = [self.emptyDataSetSource offsetForEmptyDataSet:self];
