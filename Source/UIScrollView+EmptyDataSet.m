@@ -293,24 +293,29 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
     CGFloat left = roundf(self.contentInset.left);
     CGFloat bottom = roundf(self.contentInset.bottom);
     CGFloat right = roundf(self.contentInset.right);
+    CGFloat additionalTop = 0;
     
     if ([self isKindOfClass:[UITableView class]]) {
         UITableView *tableView = (UITableView *)self;
-        top += tableView.tableHeaderView.frame.size.height;
-        
+        additionalTop += tableView.tableHeaderView.frame.size.height;
         if(tableView.style == UITableViewStyleGrouped && [tableView numberOfSections] > 0){
             if(tableView.delegate && [tableView.delegate respondsToSelector:@selector(tableView:heightForHeaderInSection:)]){
-                top += [tableView.delegate tableView:tableView heightForHeaderInSection:0];
+                additionalTop += [tableView.delegate tableView:tableView heightForHeaderInSection:0];
             } else {
-                top += [tableView sectionHeaderHeight];
+                additionalTop += [tableView sectionHeaderHeight];
             }
         }
     }
     
-    // Honors the scrollView's contentInset
-    CGPoint offset = CGPointMake((left-right), (-top+(top-bottom)*0.5));
+    CGPoint offset = CGPointZero;
     
-    if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(offsetForEmptyDataSet:)]) {
+    if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(customLoadingViewForEmptyDataSet:)]
+        && [self.emptyDataSetDelegate respondsToSelector:@selector(emptyDataSetShouldDisplayLoading:)]
+        && [self.emptyDataSetDelegate emptyDataSetShouldDisplayLoading:self]) {
+        offset = CGPointMake((left-right),additionalTop);
+    } else if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(offsetForEmptyDataSet:)]) {
+        top += additionalTop;
+        offset = CGPointMake((left-right),(-top+(top-bottom)*0.5));
         CGPoint customOffset = [self.emptyDataSetSource offsetForEmptyDataSet:self];
         offset = CGPointMake(offset.x + customOffset.x, offset.y + customOffset.y);
     }
@@ -938,7 +943,6 @@ NSString *dzn_implementationKey(id target, SEL selector)
     
     [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"H:[self]-(<=0)-[contentView]"
                                                                  options:NSLayoutFormatAlignAllCenterY metrics:nil views:views]];
-    
     [self addConstraints:[NSLayoutConstraint constraintsWithVisualFormat:@"V:[self]-(<=0)-[contentView]"
                                                                  options:NSLayoutFormatAlignAllCenterX metrics:nil views:views]];
     
