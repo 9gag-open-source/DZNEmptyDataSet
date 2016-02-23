@@ -143,7 +143,9 @@
  */
 - (CGFloat)spaceHeightForEmptyDataSet:(UIScrollView *)scrollView;
 
-- (UIView *)customLoadingViewForEmptyDataSet:(UIView *)scrollView;
+- (UIView *)customLoadingViewForEmptyDataSet:(UIScrollView *)scrollView;
+- (UIActivityIndicatorViewStyle)activityIndicatorStyleForEmptyDataSet:(UIScrollView *)scrollView;
+- (BOOL)emptyDataSetShouldCenterEmptyView:(UIScrollView *)scrollView;
 
 @end
 

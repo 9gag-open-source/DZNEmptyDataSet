@@ -282,7 +282,12 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
         if (view) NSAssert([view isKindOfClass:[UIView class]], @"You must return a valid UIView object for -customLoadingViewForEmptyDataSet:");
         return view;
     }
-    UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+    
+    UIActivityIndicatorViewStyle style = UIActivityIndicatorViewStyleGray;
+    if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(activityIndicatorStyleForEmptyDataSet:)]) {
+        style = [self.emptyDataSetSource activityIndicatorStyleForEmptyDataSet:self];
+    }
+    UIActivityIndicatorView *activityIndicatorView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:style];
     [activityIndicatorView startAnimating];
     return activityIndicatorView;
 }
@@ -309,15 +314,21 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
     
     CGPoint offset = CGPointZero;
     
-    if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(customLoadingViewForEmptyDataSet:)]
-        && [self.emptyDataSetDelegate respondsToSelector:@selector(emptyDataSetShouldDisplayLoading:)]
-        && [self.emptyDataSetDelegate emptyDataSetShouldDisplayLoading:self]) {
-        offset = CGPointMake((left-right),additionalTop);
-    } else if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(offsetForEmptyDataSet:)]) {
+    if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(emptyDataSetShouldCenterEmptyView:)]
+        && [self.emptyDataSetSource emptyDataSetShouldCenterEmptyView:self]) {
+        
         top += additionalTop;
         offset = CGPointMake((left-right),(-top+(top-bottom)*0.5));
-        CGPoint customOffset = [self.emptyDataSetSource offsetForEmptyDataSet:self];
-        offset = CGPointMake(offset.x + customOffset.x, offset.y + customOffset.y);
+        
+        if (self.emptyDataSetSource && [self.emptyDataSetSource respondsToSelector:@selector(offsetForEmptyDataSet:)]) {
+            CGPoint customOffset = [self.emptyDataSetSource offsetForEmptyDataSet:self];
+            offset = CGPointMake(offset.x + customOffset.x, offset.y + customOffset.y);
+        }
+        
+    } else {
+        
+        offset = CGPointMake((left-right),additionalTop);
+        
     }
     
     return offset;
