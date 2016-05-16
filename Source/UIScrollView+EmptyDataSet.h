@@ -228,4 +228,9 @@
 
 - (BOOL)emptyDataSetShouldDisplayLoading:(UIScrollView *)scrollView;
 
+- (void)emptyDataSetWillAppearEmpty:(UIScrollView *)scrollView;
+- (void)emptyDataSetDidAppearEmpty:(UIScrollView *)scrollView;
+
+
+
 @end

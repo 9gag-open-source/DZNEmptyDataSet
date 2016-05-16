@@ -419,6 +419,20 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
     return NO;
 }
 
+- (void)dzn_willAppearEmpty
+{
+    if (self.emptyDataSetDelegate && [self.emptyDataSetDelegate respondsToSelector:@selector(emptyDataSetWillAppearEmpty:)]) {
+        [self.emptyDataSetDelegate emptyDataSetWillAppearEmpty:self];
+    }
+}
+
+- (void)dzn_didAppearEmpty
+{
+    if (self.emptyDataSetDelegate && [self.emptyDataSetDelegate respondsToSelector:@selector(emptyDataSetDidAppearEmpty:)]) {
+        [self.emptyDataSetDelegate emptyDataSetDidAppearEmpty:self];
+    }
+}
+
 #pragma mark - Setters (Public)
 
 - (void)setEmptyDataSetSource:(id<DZNEmptyDataSetSource>)source
@@ -510,6 +524,9 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
             view.customView = [self dzn_customView];
         }
         else {
+            
+            [self dzn_willAppearEmpty];
+            
             // Configure labels
             view.detailLabel.attributedText = [self dzn_detailLabelText];
             view.titleLabel.attributedText = [self dzn_titleLabelText];
@@ -540,6 +557,8 @@ static char const * const kEmptyDataSetViewDidLayoutSublayer =       "kEmptyData
 
             // Configure spacing
             view.verticalSpace = [self dzn_verticalSpace];
+            
+            [self dzn_didAppearEmpty];
         }
         
         // Configure Offset
